@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  STORE_KEEPER
+  SALES_REPRESENTATIVE
+}
+
+enum OrderStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  role      UserRole
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  
+  // Relations
+  creator   User?    @relation("UserCreator", fields: [createdBy], references: [id])
+  createdUsers User[] @relation("UserCreator")
+  orders    Order[]
+  
+  @@map("users")
+}
+
+model StockItem {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  quantity     Int
+  buyingPrice  Float
+  sellingPrice Float?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Relations
+  orderItems   OrderItem[]
+  
+  @@map("stock_items")
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  customerName   String
+  customerContact String
+  status         OrderStatus @default(PENDING)
+  totalAmount    Float       @default(0)
+  rejectionReason String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  
+  // Relations
+  salesRepId     String
+  salesRep       User        @relation(fields: [salesRepId], references: [id])
+  orderItems     OrderItem[]
+  
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String @id @default(cuid())
+  quantity   Int
+  unitPrice  Float
+  totalPrice Float
+  
+  // Relations
+  orderId    String
+  order      Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  stockItemId String
+  stockItem  StockItem @relation(fields: [stockItemId], references: [id])
+  
+  @@map("order_items")
+}
